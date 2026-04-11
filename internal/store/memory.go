@@ -23,11 +23,11 @@ func NewMemoryStore() *MemoryStore {
 
 var _ Store = (*MemoryStore)(nil)
 
-func (ms *MemoryStore) Create(ctx context.Context, s *Sensor) error {
+func (ms *MemoryStore) Create(ctx context.Context, sensor *Sensor) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if s == nil {
+	if sensor == nil {
 		return errors.New("sensor is nil")
 	}
 	id, err := newRandomID()
@@ -35,7 +35,7 @@ func (ms *MemoryStore) Create(ctx context.Context, s *Sensor) error {
 		return err
 	}
 	now := time.Now().UTC().Format(time.RFC3339)
-	created := *s
+	created := *sensor
 	created.ID = id
 	if created.CreatedAt == "" {
 		created.CreatedAt = now
@@ -53,11 +53,11 @@ func (ms *MemoryStore) Get(ctx context.Context, id string) (Sensor, error) {
 	}
 	ms.mu.RLock()
 	defer ms.mu.RUnlock()
-	s, ok := ms.m[id]
+	sensor, ok := ms.m[id]
 	if !ok {
 		return Sensor{}, ErrNotFound
 	}
-	return s, nil
+	return sensor, nil
 }
 
 func (ms *MemoryStore) List(ctx context.Context) ([]Sensor, error) {
@@ -67,27 +67,27 @@ func (ms *MemoryStore) List(ctx context.Context) ([]Sensor, error) {
 	ms.mu.RLock()
 	defer ms.mu.RUnlock()
 	out := make([]Sensor, 0, len(ms.m))
-	for _, s := range ms.m {
-		out = append(out, s)
+	for _, sensor := range ms.m {
+		out = append(out, sensor)
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
 	return out, nil
 }
 
-func (ms *MemoryStore) Update(ctx context.Context, s Sensor) error {
+func (ms *MemoryStore) Update(ctx context.Context, sensor Sensor) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 	ms.mu.Lock()
 	defer ms.mu.Unlock()
-	old, ok := ms.m[s.ID]
+	old, ok := ms.m[sensor.ID]
 	if !ok {
 		return ErrNotFound
 	}
-	if s.CreatedAt == "" {
-		s.CreatedAt = old.CreatedAt
+	if sensor.CreatedAt == "" {
+		sensor.CreatedAt = old.CreatedAt
 	}
-	ms.m[s.ID] = s
+	ms.m[sensor.ID] = sensor
 	return nil
 }
 
