@@ -1,2 +1,6 @@
 .cursor/
 .cursorignore
+
+*/bin/
+*.exe
+*.test
