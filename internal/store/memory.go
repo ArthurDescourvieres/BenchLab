@@ -44,6 +44,7 @@ func (ms *MemoryStore) Create(ctx context.Context, sensor *Sensor) error {
 	ms.mu.Lock()
 	defer ms.mu.Unlock()
 	ms.m[id] = created
+	sensor.ID = id
 	return nil
 }
 
