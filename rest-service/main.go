@@ -5,8 +5,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/ArthurDescourvieres/BenchLab/internal/rest"
-	"github.com/ArthurDescourvieres/BenchLab/internal/store"
+	"github.com/ArthurDescourvieres/BenchLab/store"
 	"github.com/gin-gonic/gin"
 )
 
@@ -25,8 +24,9 @@ func main() {
 	r.Use(gin.Recovery())
 	r.GET("/health", func(c *gin.Context) { c.Status(http.StatusOK) })
 
-	s := store.NewMemoryStore()
-	rest.RegisterRoutes(r, s)
+	st := store.NewMemoryStore()
+	svc := NewSensorService(st)
+	RegisterRoutes(r, svc)
 
 	log.Printf("REST listening on %s", addr)
 	if err := r.Run(addr); err != nil {
