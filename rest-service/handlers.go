@@ -4,15 +4,16 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/ArthurDescourvieres/BenchLab/internal/sensorsvc"
 	"github.com/ArthurDescourvieres/BenchLab/store"
 	"github.com/gin-gonic/gin"
 )
 
 type Handler struct {
-	svc *SensorService
+	svc *sensorsvc.SensorService
 }
 
-func NewHandler(svc *SensorService) *Handler {
+func NewHandler(svc *sensorsvc.SensorService) *Handler {
 	return &Handler{svc: svc}
 }
 
@@ -34,7 +35,7 @@ func (h *Handler) Create(ginCtx *gin.Context) {
 		return
 	}
 	reqCtx := ginCtx.Request.Context()
-	created, err := h.svc.Create(reqCtx, SensorPayload{
+	created, err := h.svc.Create(reqCtx, sensorsvc.SensorPayload{
 		Name:          body.Name,
 		Type:          body.Type,
 		Location:      body.Location,
@@ -78,7 +79,7 @@ func (h *Handler) Update(ginCtx *gin.Context) {
 		return
 	}
 	reqCtx := ginCtx.Request.Context()
-	updated, err := h.svc.Update(reqCtx, sensorID, SensorPayload{
+	updated, err := h.svc.Update(reqCtx, sensorID, sensorsvc.SensorPayload{
 		ID:            body.ID,
 		Name:          body.Name,
 		Type:          body.Type,
@@ -109,12 +110,12 @@ func writeSensorError(ginCtx *gin.Context, err error) {
 	switch {
 	case errors.Is(err, store.ErrNotFound):
 		ginCtx.JSON(http.StatusNotFound, gin.H{"error": store.ErrNotFound.Error()})
-	case errors.Is(err, ErrInvalidSensorType),
-		errors.Is(err, ErrInvalidStatus),
-		errors.Is(err, ErrInvalidReadingAt),
-		errors.Is(err, ErrInvalidName),
-		errors.Is(err, ErrIDMismatch),
-		errors.Is(err, ErrInvalidID):
+	case errors.Is(err, sensorsvc.ErrInvalidSensorType),
+		errors.Is(err, sensorsvc.ErrInvalidStatus),
+		errors.Is(err, sensorsvc.ErrInvalidReadingAt),
+		errors.Is(err, sensorsvc.ErrInvalidName),
+		errors.Is(err, sensorsvc.ErrIDMismatch),
+		errors.Is(err, sensorsvc.ErrInvalidID):
 		ginCtx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	default:
 		ginCtx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

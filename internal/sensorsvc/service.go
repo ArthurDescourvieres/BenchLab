@@ -1,4 +1,4 @@
-package main
+package sensorsvc
 
 import (
 	"context"
@@ -27,7 +27,7 @@ type SensorService struct {
 	store store.Store
 }
 
-func NewSensorService(st store.Store) *SensorService {
+func New(st store.Store) *SensorService {
 	return &SensorService{store: st}
 }
 

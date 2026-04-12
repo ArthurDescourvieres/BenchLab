@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/ArthurDescourvieres/BenchLab/internal/sensorsvc"
 	"github.com/ArthurDescourvieres/BenchLab/store"
 	"github.com/gin-gonic/gin"
 )
@@ -25,7 +26,7 @@ func main() {
 	r.GET("/health", func(c *gin.Context) { c.Status(http.StatusOK) })
 
 	st := store.NewMemoryStore()
-	svc := NewSensorService(st)
+	svc := sensorsvc.New(st)
 	RegisterRoutes(r, svc)
 
 	log.Printf("REST listening on %s", addr)

@@ -1,0 +1,32 @@
+// Scénario B — écriture : 500 POST, 5 VU
+import http from "k6/http";
+import { check } from "k6";
+
+const base = __ENV.BASE_URL || "http://localhost:8080";
+
+export const options = {
+  vus: 5,
+  iterations: 500,
+};
+
+export default function () {
+  const body = JSON.stringify({
+    name: "Bench-Write-Fixed",
+    type: "PRESSURE",
+    location: "Line-2",
+    unit: "bar",
+    status: "ACTIVE",
+    last_value: 1.02,
+    last_reading_at: "2026-01-15T10:00:00Z",
+  });
+  const res = http.post(`${base}/sensors`, body, {
+    headers: { "Content-Type": "application/json" },
+  });
+  check(res, { "201": (r) => r.status === 201 });
+}
+
+export function handleSummary(data) {
+  return {
+    "benchmark/results/k6-rest-b-summary.json": JSON.stringify(data, null, 2),
+  };
+}
