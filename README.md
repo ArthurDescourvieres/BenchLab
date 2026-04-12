@@ -27,82 +27,44 @@ En cas d’ajout de dépendances plus tard : `go get chemin/du/module@version`
 
 ## Compiler le service REST
 
-**macOS / Linux** :
+**Bash** (macOS, Linux, **Git Bash / MSYS2 / terminal bash sous Windows** — depuis la racine du repo) :
 
 ```bash
-go build -o bin/rest ./cmd/rest
+go build -o "bin/rest$(go env GOEXE)" ./rest-service
 ```
 
-**Windows (PowerShell ou cmd, depuis la racine du repo)** :
-
-```powershell
-go build -o bin\rest.exe .\cmd\rest
-```
-
-Tu obtiens un exécutable `bin/rest` (Unix) ou `bin\rest.exe` (Windows).
+`GOEXE` vaut `.exe` sous Windows et une chaîne vide ailleurs, donc le binaire est toujours au bon nom (`bin/rest` ou `bin/rest.exe`).
 
 ## Lancer le service REST
 
 Par défaut le serveur écoute sur **`:8080`** (aucun fichier `.env` n’est lu automatiquement par l’application — voir la section suivante).
 
-**macOS / Linux** :
+**Bash** (y compris Git Bash / terminal bash sous Windows) :
 
 ```bash
-./bin/rest
-```
-
-**Windows (PowerShell)** :
-
-```powershell
-.\bin\rest.exe
-```
-
-**Windows (cmd)** :
-
-```cmd
-bin\rest.exe
+./bin/rest$(go env GOEXE)
 ```
 
 ### Port personnalisé (`PORT`)
 
-**macOS / Linux (bash ou zsh)** :
+**Bash** (macOS, Linux, Git Bash / bash sous Windows) :
 
 ```bash
 export PORT=3000
-./bin/rest
-```
-
-**Windows (PowerShell)** :
-
-```powershell
-$env:PORT = "3000"
-.\bin\rest.exe
-```
-
-**Windows (cmd)** :
-
-```cmd
-set PORT=3000
-bin\rest.exe
+./bin/rest$(go env GOEXE)
 ```
 
 ### Vérifier que ça tourne
 
 - Santé : `GET http://localhost:8080/health` → réponse **200**.
-- API capteurs : préfixe sous `/sensors` (détails dans `internal/rest/`).
+- API capteurs : préfixe sous `/sensors` (code dans `rest-service/` : `main.go`, `handlers.go`, `router.go`, `service.go` ; stockage partagé dans `store/`).
 
 Exemple rapide en ligne de commande :
 
-**macOS / Linux** :
+**Bash** (avec `curl` installé — inclus dans Git Bash) :
 
 ```bash
 curl -i http://localhost:8080/health
-```
-
-**Windows (PowerShell)** :
-
-```powershell
-curl.exe -i http://localhost:8080/health
 ```
 
 ## Développement sans binaire intermédiaire
@@ -110,5 +72,5 @@ curl.exe -i http://localhost:8080/health
 **Toutes plateformes** :
 
 ```bash
-go run ./cmd/rest
+go run ./rest-service
 ```

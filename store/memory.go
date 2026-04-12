@@ -10,12 +10,10 @@ import (
 	"time"
 )
 
-// créé un pile en go
 type MemoryStore struct {
 	mu sync.RWMutex
 	m  map[string]Sensor
 }
-
 
 func NewMemoryStore() *MemoryStore {
 	return &MemoryStore{m: make(map[string]Sensor)}
