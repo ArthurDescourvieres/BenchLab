@@ -142,7 +142,15 @@ Scénario **C** — montée progressive 10 → 100 VU sur `GET` :
 k6 run benchmark/scripts/k6-rest-c-ramp.js
 ```
 
-Les résumés k6 sont écrits dans `benchmark/results/` (`k6-rest-*-summary.json`).
+Les résumés k6 sont écrits dans `benchmark/results/` (`k6-rest-*-summary.json`). Ils incluent désormais **`p(99)`** sur les tendances de temps et une métrique **`response_size_bytes`** (taille du corps de réponse mesurée pendant le test).
+
+**Taille JSON vs Protobuf** (un même capteur, hors en-têtes réseau) :
+
+```bash
+go run ./benchmark/cmd/payloadsize
+```
+
+Le fichier `benchmark/results/payload-size.json` est régénéré à chaque exécution.
 
 ### gRPC (ghz)
 

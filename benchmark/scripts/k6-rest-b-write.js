@@ -1,12 +1,16 @@
 // Scénario B — écriture : 500 POST, 5 VU
 import http from "k6/http";
 import { check } from "k6";
+import { Trend } from "k6/metrics";
+
+const responseSizeBytes = new Trend("response_size_bytes");
 
 const base = __ENV.BASE_URL || "http://localhost:8080";
 
 export const options = {
   vus: 5,
   iterations: 500,
+  summaryTrendStats: ["avg", "min", "med", "max", "p(90)", "p(95)", "p(99)"],
 };
 
 export default function () {
@@ -22,6 +26,7 @@ export default function () {
   const res = http.post(`${base}/sensors`, body, {
     headers: { "Content-Type": "application/json" },
   });
+  responseSizeBytes.add(res.body.length);
   check(res, { "201": (r) => r.status === 201 });
 }
 

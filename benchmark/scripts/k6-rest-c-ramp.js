@@ -1,6 +1,9 @@
 // Scénario C — charge progressive sur GET (10 → 100 VU)
 import http from "k6/http";
 import { check } from "k6";
+import { Trend } from "k6/metrics";
+
+const responseSizeBytes = new Trend("response_size_bytes");
 
 const base = __ENV.BASE_URL || "http://localhost:8080";
 
@@ -22,6 +25,7 @@ export const options = {
     { duration: "45s", target: 100 },
     { duration: "30s", target: 100 },
   ],
+  summaryTrendStats: ["avg", "min", "med", "max", "p(90)", "p(95)", "p(99)"],
 };
 
 export function setup() {
@@ -36,6 +40,7 @@ export function setup() {
 
 export default function (data) {
   const res = http.get(`${base}/sensors/${data.id}`);
+  responseSizeBytes.add(res.body.length);
   check(res, { "200": (r) => r.status === 200 });
 }
 

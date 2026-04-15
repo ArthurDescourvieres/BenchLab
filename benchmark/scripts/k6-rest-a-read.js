@@ -1,6 +1,9 @@
 // Scénario A — lecture unitaire : 1000 itérations, 10 VU, GET /sensors/{id}
 import http from "k6/http";
 import { check } from "k6";
+import { Trend } from "k6/metrics";
+
+const responseSizeBytes = new Trend("response_size_bytes");
 
 const base = __ENV.BASE_URL || "http://localhost:8080";
 
@@ -17,6 +20,7 @@ const payload = JSON.stringify({
 export const options = {
   vus: 10,
   iterations: 1000,
+  summaryTrendStats: ["avg", "min", "med", "max", "p(90)", "p(95)", "p(99)"],
 };
 
 export function setup() {
@@ -32,6 +36,7 @@ export function setup() {
 
 export default function (data) {
   const res = http.get(`${base}/sensors/${data.id}`);
+  responseSizeBytes.add(res.body.length);
   check(res, { "200": (r) => r.status === 200 });
 }
 
