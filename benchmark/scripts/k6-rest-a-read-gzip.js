@@ -1,4 +1,12 @@
-// Scénario A — lecture unitaire : 1000 itérations, 10 VU, GET /sensors/{id}
+// Scénario A bis — lecture unitaire REST avec compression gzip activée côté serveur.
+// Mêmes paramètres que k6-rest-a-read.js (1000 itérations, 10 VU, GET /sensors/{id})
+// mais le client demande explicitement gzip via Accept-Encoding.
+// IMPORTANT : le service REST doit être démarré avec REST_GZIP=1 :
+//   REST_GZIP=1 go run ./rest-service        (Bash / Linux / macOS)
+//   $env:REST_GZIP=1; go run ./rest-service  (PowerShell Windows)
+// La métrique response_size_bytes mesure la taille du corps tel que reçu par k6.
+// Si le client k6 décompresse automatiquement (cas par défaut sur certains builds),
+// la valeur sera celle décompressée — voir aussi data_received pour la taille filaire.
 import http from "k6/http";
 import { check } from "k6";
 import { Trend, Rate } from "k6/metrics";
@@ -9,7 +17,7 @@ const errors = new Rate("errors");
 const base = __ENV.BASE_URL || "http://localhost:8080";
 
 const payload = JSON.stringify({
-  name: "Bench-Setup",
+  name: "Bench-Setup-Gzip",
   type: "TEMPERATURE",
   location: "Lab",
   unit: "°C",
@@ -31,12 +39,14 @@ export function setup() {
   if (res.status !== 201) {
     throw new Error(`setup POST failed: ${res.status} ${res.body}`);
   }
-  const body = res.json();
-  return { id: body.id };
+  return { id: res.json().id };
 }
 
 export default function (data) {
-  const res = http.get(`${base}/sensors/${data.id}`);
+  const res = http.get(`${base}/sensors/${data.id}`, {
+    headers: { "Accept-Encoding": "gzip" },
+    compression: "gzip",
+  });
   responseSizeBytes.add(res.body.length);
   const ok = res.status === 200;
   errors.add(!ok);
@@ -45,6 +55,6 @@ export default function (data) {
 
 export function handleSummary(data) {
   return {
-    "benchmark/results/k6-rest-a-summary.json": JSON.stringify(data, null, 2),
+    "benchmark/results/k6-rest-a-gzip-summary.json": JSON.stringify(data, null, 2),
   };
 }

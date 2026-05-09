@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BenchLab — Rapport de benchmark REST vs gRPC</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --rest: #3b82f6;
+      --rest-light: rgba(59,130,246,.15);
+      --grpc: #10b981;
+      --grpc-light: rgba(16,185,129,.15);
+      --grpc-ghz: #f59e0b;
+      --grpc-ghz-light: rgba(245,158,11,.15);
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --border: #334155;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #818cf8;
+    }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 15px; line-height: 1.6; padding: 40px 24px; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    header { text-align: center; margin-bottom: 56px; }
+    header h1 { font-size: 2.4rem; font-weight: 700; background: linear-gradient(135deg, var(--rest), var(--accent), var(--grpc)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    header p { color: var(--muted); margin-top: 8px; font-size: 0.95rem; }
+    .badge { display: inline-block; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 4px 14px; font-size: 0.8rem; margin: 4px; }
+    .badge.rest { border-color: var(--rest); color: var(--rest); }
+    .badge.grpc { border-color: var(--grpc); color: var(--grpc); }
+    .badge.ghz  { border-color: var(--grpc-ghz); color: var(--grpc-ghz); }
+
+    section { margin-bottom: 60px; }
+    h2 { font-size: 1.4rem; font-weight: 600; color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 24px; }
+    h3 { font-size: 1.05rem; font-weight: 600; color: var(--text); margin-bottom: 14px; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    @media (max-width: 760px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; }
+    .chart-wrap { position: relative; height: 300px; }
+
+    /* KPI cards */
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; }
+    .kpi .label { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+    .kpi .value { font-size: 1.5rem; font-weight: 700; margin-top: 4px; }
+    .kpi .sub   { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+    .kpi.rest   { border-left: 3px solid var(--rest); }
+    .kpi.grpc   { border-left: 3px solid var(--grpc); }
+    .kpi.neutral{ border-left: 3px solid var(--accent); }
+
+    /* Tables */
+    .table-wrap { overflow-x: auto; margin-top: 20px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { background: #0f172a; color: var(--muted); font-weight: 500; text-transform: uppercase; font-size: 0.75rem; letter-spacing: .05em; padding: 10px 14px; text-align: right; }
+    th:first-child { text-align: left; }
+    td { padding: 10px 14px; text-align: right; border-top: 1px solid var(--border); }
+    td:first-child { text-align: left; font-weight: 500; }
+    tr:hover td { background: rgba(255,255,255,.03); }
+    .best { color: #34d399; font-weight: 700; }
+    .worst { color: #f87171; }
+
+    /* Legend */
+    .legend { display: flex; gap: 20px; margin-bottom: 14px; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: 7px; font-size: 0.85rem; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+
+    /* Methodology */
+    .method-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+    .method-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+    .method-item .icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .method-item strong { display: block; margin-bottom: 4px; }
+    .method-item span { font-size: 0.85rem; color: var(--muted); }
+
+    /* Highlight box */
+    .insight { background: linear-gradient(135deg, rgba(129,140,248,.08), rgba(16,185,129,.08)); border: 1px solid rgba(129,140,248,.25); border-radius: 10px; padding: 18px 22px; margin-top: 20px; font-size: 0.92rem; line-height: 1.7; }
+    .insight strong { color: var(--accent); }
+
+    footer { text-align: center; color: var(--muted); font-size: 0.82rem; margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- HEADER -->
+  <header>
+    <h1>BenchLab — REST vs gRPC</h1>
+    <p>Rapport de performance comparatif &bull; Exécuté le 26 avril 2026</p>
+    <div style="margin-top:14px">
+      <span class="badge rest">REST / HTTP 1.1 + JSON</span>
+      <span class="badge grpc">gRPC / HTTP 2 + Protobuf (k6)</span>
+      <span class="badge ghz">gRPC / HTTP 2 + Protobuf (ghz)</span>
+    </div>
+  </header>
+
+  <!-- METHODOLOGY -->
+  <section>
+    <h2>Méthodologie</h2>
+    <div class="method-grid">
+      <div class="method-item">
+        <div class="icon">🔧</div>
+        <strong>Infrastructure</strong>
+        <span>Deux services Go en mémoire (Gin + gRPC), même logique métier, même store. Machine locale Windows 11, sans réseau externe.</span>
+      </div>
+      <div class="method-item">
+        <div class="icon">⚙️</div>
+        <strong>Outil de charge</strong>
+        <span>k6 v1.7.1 pour REST et gRPC k6 (comparaison équitable). ghz pour l'analyse gRPC en montée de concurrence.</span>
+      </div>
+      <div class="method-item">
+        <div class="icon">📋</div>
+        <strong>Scénarios</strong>
+        <span>A — Lecture (1 000 req, 10 VUs) · B — Écriture (500 req, 5 VUs) · C — Ramp 10→100 VUs sur 210 s</span>
+      </div>
+      <div class="method-item">
+        <div class="icon">📦</div>
+        <strong>Payload</strong>
+        <span>Entité Sensor complète (9 champs). JSON : 230 octets · Protobuf : 135 octets. Taux d'erreur : 0 % sur tous les tests.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCENARIO A -->
+  <section>
+    <h2>Scénario A — Lecture (GET /sensors/:id · GetSensor)</h2>
+    <p style="color:var(--muted);margin-bottom:20px;font-size:.9rem">1 000 itérations partagées · 10 VUs · Lecture d'un capteur existant</p>
+
+    <div class="kpi-grid">
+      <div class="kpi rest"><div class="label">REST — Throughput</div><div class="value" style="color:var(--rest)">9 972</div><div class="sub">req/s</div></div>
+      <div class="kpi grpc"><div class="label">gRPC — Throughput</div><div class="value" style="color:var(--grpc)">5 547</div><div class="sub">req/s</div></div>
+      <div class="kpi rest"><div class="label">REST — Latence avg</div><div class="value" style="color:var(--rest)">0.62</div><div class="sub">ms</div></div>
+      <div class="kpi grpc"><div class="label">gRPC — Latence avg</div><div class="value" style="color:var(--grpc)">1.19</div><div class="sub">ms</div></div>
+      <div class="kpi rest"><div class="label">REST — p99</div><div class="value" style="color:var(--rest)">3.25</div><div class="sub">ms</div></div>
+      <div class="kpi grpc"><div class="label">gRPC — p99</div><div class="value" style="color:var(--grpc)">5.47</div><div class="sub">ms</div></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Latence par percentile (ms)</h3>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--rest)"></div>REST</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--grpc)"></div>gRPC</div>
+        </div>
+        <div class="chart-wrap"><canvas id="aLatency"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Throughput comparé (req/s)</h3>
+        <div class="chart-wrap"><canvas id="aThroughput"></canvas></div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Protocole</th><th>avg (ms)</th><th>p90 (ms)</th><th>p95 (ms)</th><th>p99 (ms)</th><th>max (ms)</th><th>Req/s</th></tr></thead>
+        <tbody>
+          <tr><td>REST (HTTP/1.1 + JSON)</td><td class="best">0.618</td><td class="best">1.212</td><td class="best">1.732</td><td class="best">3.252</td><td class="best">7.652</td><td class="best">9 972</td></tr>
+          <tr><td>gRPC (HTTP/2 + Protobuf)</td><td class="worst">1.189</td><td class="worst">2.244</td><td class="worst">2.666</td><td class="worst">5.466</td><td class="worst">9.868</td><td class="worst">5 547</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- SCENARIO B -->
+  <section>
+    <h2>Scénario B — Écriture (POST /sensors · CreateSensor)</h2>
+    <p style="color:var(--muted);margin-bottom:20px;font-size:.9rem">500 itérations partagées · 5 VUs · Création d'un nouveau capteur</p>
+
+    <div class="kpi-grid">
+      <div class="kpi rest"><div class="label">REST — Throughput</div><div class="value" style="color:var(--rest)">5 797</div><div class="sub">req/s</div></div>
+      <div class="kpi grpc"><div class="label">gRPC — Throughput</div><div class="value" style="color:var(--grpc)">5 445</div><div class="sub">req/s</div></div>
+      <div class="kpi rest"><div class="label">REST — Latence avg</div><div class="value" style="color:var(--rest)">0.57</div><div class="sub">ms</div></div>
+      <div class="kpi grpc"><div class="label">gRPC — Latence avg</div><div class="value" style="color:var(--grpc)">0.50</div><div class="sub">ms</div></div>
+      <div class="kpi rest"><div class="label">REST — p99</div><div class="value" style="color:var(--rest)">3.36</div><div class="sub">ms</div></div>
+      <div class="kpi grpc"><div class="label">gRPC — p99</div><div class="value" style="color:var(--grpc)">1.81</div><div class="sub">ms</div></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Latence par percentile (ms)</h3>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--rest)"></div>REST</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--grpc)"></div>gRPC</div>
+        </div>
+        <div class="chart-wrap"><canvas id="bLatency"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Throughput comparé (req/s)</h3>
+        <div class="chart-wrap"><canvas id="bThroughput"></canvas></div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Protocole</th><th>avg (ms)</th><th>p90 (ms)</th><th>p95 (ms)</th><th>p99 (ms)</th><th>max (ms)</th><th>Req/s</th></tr></thead>
+        <tbody>
+          <tr><td>REST (HTTP/1.1 + JSON)</td><td class="worst">0.571</td><td class="worst">1.120</td><td class="worst">1.537</td><td class="worst">3.359</td><td class="worst">6.047</td><td class="worst">5 797</td></tr>
+          <tr><td>gRPC (HTTP/2 + Protobuf)</td><td class="best">0.502</td><td class="best">1.104</td><td class="best">1.216</td><td class="best">1.815</td><td class="best">2.074</td><td class="best">5 445</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="insight">
+      <strong>Note sur le scénario B :</strong> L'écriture gRPC affiche une latence légèrement inférieure à REST (avg −12 %, p99 −46 %). La sérialisation Protobuf est plus efficace pour encoder un corps complet (payload de création plus lourd), ce qui avantage gRPC sur les opérations d'écriture même en local.
+    </div>
+  </section>
+
+  <!-- SCENARIO C -->
+  <section>
+    <h2>Scénario C — Montée en charge (Ramp 10 → 100 VUs, 210 s)</h2>
+    <p style="color:var(--muted);margin-bottom:20px;font-size:.9rem">Lecture d'un capteur sous charge croissante · Stages : 10→30→60→100 VUs</p>
+
+    <div class="kpi-grid">
+      <div class="kpi rest"><div class="label">REST — Throughput pic</div><div class="value" style="color:var(--rest)">24 225</div><div class="sub">req/s</div></div>
+      <div class="kpi grpc"><div class="label">gRPC — Throughput pic</div><div class="value" style="color:var(--grpc)">12 759</div><div class="sub">req/s</div></div>
+      <div class="kpi rest"><div class="label">REST — Requêtes totales</div><div class="value" style="color:var(--rest)">5.09 M</div><div class="sub">en 210 s</div></div>
+      <div class="kpi grpc"><div class="label">gRPC — Requêtes totales</div><div class="value" style="color:var(--grpc)">2.68 M</div><div class="sub">en 210 s</div></div>
+      <div class="kpi rest"><div class="label">REST — p99</div><div class="value" style="color:var(--rest)">12.67</div><div class="sub">ms</div></div>
+      <div class="kpi grpc"><div class="label">gRPC — p99</div><div class="value" style="color:var(--grpc)">16.14</div><div class="sub">ms</div></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Métriques de latence globales (ms)</h3>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--rest)"></div>REST</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--grpc)"></div>gRPC (k6)</div>
+        </div>
+        <div class="chart-wrap"><canvas id="cLatency"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Throughput global (req/s)</h3>
+        <div class="chart-wrap"><canvas id="cThroughput"></canvas></div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Protocole</th><th>avg (ms)</th><th>p90 (ms)</th><th>p95 (ms)</th><th>p99 (ms)</th><th>Req/s moy.</th><th>Total requêtes</th></tr></thead>
+        <tbody>
+          <tr><td>REST (HTTP/1.1 + JSON)</td><td class="best">1.731</td><td class="best">3.332</td><td class="best">4.995</td><td class="best">12.665</td><td class="best">24 225</td><td class="best">5 087 471</td></tr>
+          <tr><td>gRPC k6 (HTTP/2 + Protobuf)</td><td class="worst">3.042</td><td class="worst">6.067</td><td class="worst">8.170</td><td class="worst">16.141</td><td class="worst">12 759</td><td class="worst">2 679 301</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- GHZ RAMP -->
+  <section>
+    <h2>Analyse gRPC — Scalabilité par niveau de concurrence (ghz)</h2>
+    <p style="color:var(--muted);margin-bottom:20px;font-size:.9rem">5 000 requêtes par niveau · Concurrence : 10 / 25 / 50 / 75 / 100 connexions simultanées</p>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Throughput gRPC vs concurrence</h3>
+        <div class="chart-wrap"><canvas id="ghzThroughput"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Latence gRPC vs concurrence (p50 / p95 / p99)</h3>
+        <div class="chart-wrap"><canvas id="ghzLatency"></canvas></div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Concurrence</th><th>Req/s</th><th>avg (ms)</th><th>p50 (ms)</th><th>p90 (ms)</th><th>p95 (ms)</th><th>p99 (ms)</th></tr></thead>
+        <tbody>
+          <tr><td>10</td><td>10 085</td><td>0.628</td><td>0.551</td><td>1.141</td><td>1.451</td><td>2.050</td></tr>
+          <tr><td>25</td><td>12 049</td><td>1.372</td><td>1.090</td><td>2.397</td><td>3.179</td><td>6.775</td></tr>
+          <tr><td>50</td><td>13 139</td><td>2.651</td><td>2.259</td><td>4.342</td><td>5.189</td><td>10.616</td></tr>
+          <tr><td>75</td><td>15 765</td><td>3.408</td><td>3.255</td><td>5.399</td><td>6.589</td><td>14.717</td></tr>
+          <tr><td>100</td><td>16 526</td><td>4.330</td><td>3.861</td><td>6.277</td><td>7.750</td><td>20.508</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="insight">
+      <strong>Scalabilité gRPC :</strong> Le throughput gRPC (ghz) croît de <strong>+64 %</strong> entre 10 et 100 connexions (10 085 → 16 526 req/s), illustrant l'efficacité du multiplexage HTTP/2. La latence médiane reste sous 4 ms même à 100 connexions simultanées. Cette courbe démontre la résistance à la montée en charge de gRPC dans un contexte service-à-service.
+    </div>
+  </section>
+
+  <!-- PAYLOAD SIZE -->
+  <section>
+    <h2>Taille des payloads — JSON vs Protobuf</h2>
+    <p style="color:var(--muted);margin-bottom:20px;font-size:.9rem">Sérialisation d'une entité Sensor complète (9 champs)</p>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Bytes par message</h3>
+        <div class="chart-wrap"><canvas id="payloadChart"></canvas></div>
+      </div>
+      <div class="card" style="display:flex;flex-direction:column;justify-content:center;gap:20px">
+        <div class="kpi neutral" style="border-left-color:var(--rest)">
+          <div class="label">JSON (REST)</div>
+          <div class="value" style="color:var(--rest)">230</div>
+          <div class="sub">octets par message</div>
+        </div>
+        <div class="kpi neutral" style="border-left-color:var(--grpc)">
+          <div class="label">Protobuf (gRPC)</div>
+          <div class="value" style="color:var(--grpc)">135</div>
+          <div class="sub">octets par message</div>
+        </div>
+        <div class="kpi neutral">
+          <div class="label">Réduction Protobuf</div>
+          <div class="value" style="color:var(--accent)">−41 %</div>
+          <div class="sub">JSON est 1.70× plus lourd</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RECAP -->
+  <section>
+    <h2>Tableau récapitulatif global</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Scénario</th>
+            <th>Protocole</th>
+            <th>avg (ms)</th>
+            <th>p90 (ms)</th>
+            <th>p95 (ms)</th>
+            <th>p99 (ms)</th>
+            <th>Req/s</th>
+            <th>Erreurs</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>A — Lecture</td><td>REST</td><td class="best">0.618</td><td class="best">1.212</td><td class="best">1.732</td><td class="best">3.252</td><td class="best">9 972</td><td>0 %</td></tr>
+          <tr><td>A — Lecture</td><td>gRPC (k6)</td><td>1.189</td><td>2.244</td><td>2.666</td><td>5.466</td><td>5 547</td><td>0 %</td></tr>
+          <tr style="border-top:2px solid var(--border)"><td>B — Écriture</td><td>REST</td><td>0.571</td><td>1.120</td><td>1.537</td><td class="worst">3.359</td><td>5 797</td><td>0 %</td></tr>
+          <tr><td>B — Écriture</td><td>gRPC (k6)</td><td class="best">0.502</td><td class="best">1.104</td><td class="best">1.216</td><td class="best">1.815</td><td class="best">5 445</td><td>0 %</td></tr>
+          <tr style="border-top:2px solid var(--border)"><td>C — Ramp</td><td>REST</td><td class="best">1.731</td><td class="best">3.332</td><td class="best">4.995</td><td class="best">12.665</td><td class="best">24 225</td><td>0 %</td></tr>
+          <tr><td>C — Ramp</td><td>gRPC (k6)</td><td>3.042</td><td>6.067</td><td>8.170</td><td>16.141</td><td>12 759</td><td>0 %</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ANALYSIS -->
+  <section>
+    <h2>Analyse &amp; Conclusions</h2>
+    <div class="grid-2">
+      <div class="card">
+        <h3 style="color:var(--rest)">REST — Points forts observés</h3>
+        <ul style="padding-left:18px;color:var(--muted);font-size:.9rem;line-height:2">
+          <li>Throughput supérieur en local (×1.9 en lecture, ×1.9 en ramp)</li>
+          <li>Latence médiane plus basse sur les lectures simples</li>
+          <li>Pas de surcoût de connexion HTTP/2 pour les faibles charges</li>
+          <li>Gin (HTTP/1.1) très optimisé pour le mode keep-alive local</li>
+          <li>Outillage universel (curl, Postman, browser)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--grpc)">gRPC — Points forts observés &amp; contextuels</h3>
+        <ul style="padding-left:18px;color:var(--muted);font-size:.9rem;line-height:2">
+          <li>Payload <strong>41 % plus compact</strong> (135 B vs 230 B) → bande passante réduite</li>
+          <li>Latence écriture inférieure (p99 −46 % sur scénario B)</li>
+          <li>Scalabilité linéaire ghz : +64 % throughput 10→100 connexions</li>
+          <li>Avantage HTTP/2 prononcé sur WAN (latence réseau élevée)</li>
+          <li>Contrats forts (proto), streaming bidirectionnel, load-balancing L7</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="insight" style="margin-top:24px">
+      <strong>Interprétation :</strong> En environnement local loopback, REST (Gin/HTTP 1.1) surpasse gRPC sur le throughput brut car le multiplexage HTTP/2 n'apporte pas de gain lorsque la latence réseau est quasi-nulle et que les connexions sont déjà persistantes. L'avantage gRPC devient <strong>significatif dès qu'il y a de la latence réseau</strong> (services distribués, clouds multi-régions) : la compression Protobuf réduit les octets transférés et le multiplexage HTTP/2 évite le head-of-line blocking. Pour un usage microservices en production, gRPC est recommandé pour les communications inter-services à forte fréquence ; REST reste le choix naturel pour les APIs publiques exposées aux navigateurs.
+    </div>
+  </section>
+
+  <footer>BenchLab &bull; Arthur Descourvieres &bull; 26 avril 2026 &bull; k6 v1.7.1 &bull; Go 1.26 &bull; github.com/ArthurDescourvieres/BenchLab</footer>
+</div>
+
+<script>
+Chart.defaults.color = '#94a3b8';
+Chart.defaults.borderColor = '#334155';
+Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+
+const REST  = '#3b82f6';
+const GRPC  = '#10b981';
+const GHZ   = '#f59e0b';
+const REST_L = 'rgba(59,130,246,.25)';
+const GRPC_L = 'rgba(16,185,129,.25)';
+const GHZ_L  = 'rgba(245,158,11,.25)';
+
+const barOpts = (yLabel) => ({
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { grid: { color: '#1e293b' } },
+    y: { grid: { color: '#334155' }, title: { display: true, text: yLabel } }
+  }
+});
+
+const lineOpts = (yLabel) => ({
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { grid: { color: '#334155' } },
+    y: { grid: { color: '#334155' }, title: { display: true, text: yLabel } }
+  }
+});
+
+// A — Latence
+new Chart(document.getElementById('aLatency'), {
+  type: 'bar',
+  data: {
+    labels: ['avg', 'p90', 'p95', 'p99'],
+    datasets: [
+      { label: 'REST', data: [0.618, 1.212, 1.732, 3.252], backgroundColor: REST_L, borderColor: REST, borderWidth: 2, borderRadius: 6 },
+      { label: 'gRPC', data: [1.189, 2.244, 2.666, 5.466], backgroundColor: GRPC_L, borderColor: GRPC, borderWidth: 2, borderRadius: 6 }
+    ]
+  },
+  options: { ...barOpts('ms'), plugins: { legend: { display: true, labels: { usePointStyle: true } } } }
+});
+
+// A — Throughput
+new Chart(document.getElementById('aThroughput'), {
+  type: 'bar',
+  data: {
+    labels: ['REST', 'gRPC'],
+    datasets: [{ data: [9972, 5547], backgroundColor: [REST_L, GRPC_L], borderColor: [REST, GRPC], borderWidth: 2, borderRadius: 8 }]
+  },
+  options: barOpts('req/s')
+});
+
+// B — Latence
+new Chart(document.getElementById('bLatency'), {
+  type: 'bar',
+  data: {
+    labels: ['avg', 'p90', 'p95', 'p99'],
+    datasets: [
+      { label: 'REST', data: [0.571, 1.120, 1.537, 3.359], backgroundColor: REST_L, borderColor: REST, borderWidth: 2, borderRadius: 6 },
+      { label: 'gRPC', data: [0.502, 1.104, 1.216, 1.815], backgroundColor: GRPC_L, borderColor: GRPC, borderWidth: 2, borderRadius: 6 }
+    ]
+  },
+  options: { ...barOpts('ms'), plugins: { legend: { display: true, labels: { usePointStyle: true } } } }
+});
+
+// B — Throughput
+new Chart(document.getElementById('bThroughput'), {
+  type: 'bar',
+  data: {
+    labels: ['REST', 'gRPC'],
+    datasets: [{ data: [5797, 5445], backgroundColor: [REST_L, GRPC_L], borderColor: [REST, GRPC], borderWidth: 2, borderRadius: 8 }]
+  },
+  options: barOpts('req/s')
+});
+
+// C — Latence
+new Chart(document.getElementById('cLatency'), {
+  type: 'bar',
+  data: {
+    labels: ['avg', 'p90', 'p95', 'p99'],
+    datasets: [
+      { label: 'REST', data: [1.731, 3.332, 4.995, 12.665], backgroundColor: REST_L, borderColor: REST, borderWidth: 2, borderRadius: 6 },
+      { label: 'gRPC', data: [3.042, 6.067, 8.170, 16.141], backgroundColor: GRPC_L, borderColor: GRPC, borderWidth: 2, borderRadius: 6 }
+    ]
+  },
+  options: { ...barOpts('ms'), plugins: { legend: { display: true, labels: { usePointStyle: true } } } }
+});
+
+// C — Throughput
+new Chart(document.getElementById('cThroughput'), {
+  type: 'bar',
+  data: {
+    labels: ['REST', 'gRPC'],
+    datasets: [{ data: [24225, 12759], backgroundColor: [REST_L, GRPC_L], borderColor: [REST, GRPC], borderWidth: 2, borderRadius: 8 }]
+  },
+  options: barOpts('req/s')
+});
+
+// ghz throughput
+new Chart(document.getElementById('ghzThroughput'), {
+  type: 'line',
+  data: {
+    labels: ['10', '25', '50', '75', '100'],
+    datasets: [{
+      label: 'gRPC req/s',
+      data: [10085, 12049, 13139, 15765, 16526],
+      borderColor: GHZ, backgroundColor: GHZ_L, borderWidth: 2,
+      pointBackgroundColor: GHZ, fill: true, tension: 0.3
+    }]
+  },
+  options: { ...lineOpts('req/s'), plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: 'Connexions simultanées' }, grid: { color: '#334155' } }, y: { grid: { color: '#334155' }, title: { display: true, text: 'req/s' } } } }
+});
+
+// ghz latency
+new Chart(document.getElementById('ghzLatency'), {
+  type: 'line',
+  data: {
+    labels: ['10', '25', '50', '75', '100'],
+    datasets: [
+      { label: 'p50', data: [0.551, 1.090, 2.259, 3.255, 3.861], borderColor: GRPC, backgroundColor: 'transparent', borderWidth: 2, pointBackgroundColor: GRPC, tension: 0.3 },
+      { label: 'p95', data: [1.451, 3.179, 5.189, 6.589, 7.750], borderColor: GHZ,  backgroundColor: 'transparent', borderWidth: 2, pointBackgroundColor: GHZ,  tension: 0.3, borderDash: [6,3] },
+      { label: 'p99', data: [2.050, 6.775, 10.616, 14.717, 20.508], borderColor: '#f87171', backgroundColor: 'transparent', borderWidth: 2, pointBackgroundColor: '#f87171', tension: 0.3, borderDash: [3,3] }
+    ]
+  },
+  options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, labels: { usePointStyle: true } } }, scales: { x: { title: { display: true, text: 'Connexions simultanées' }, grid: { color: '#334155' } }, y: { grid: { color: '#334155' }, title: { display: true, text: 'ms' } } } }
+});
+
+// Payload
+new Chart(document.getElementById('payloadChart'), {
+  type: 'bar',
+  data: {
+    labels: ['JSON (REST)', 'Protobuf (gRPC)'],
+    datasets: [{
+      data: [230, 135],
+      backgroundColor: [REST_L, GRPC_L],
+      borderColor: [REST, GRPC],
+      borderWidth: 2, borderRadius: 8
+    }]
+  },
+  options: { ...barOpts('octets'), indexAxis: 'y' }
+});
+</script>
+</body>
+</html>

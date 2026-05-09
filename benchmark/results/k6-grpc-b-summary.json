@@ -1,0 +1,118 @@
+{
+  "root_group": {
+    "name": "",
+    "path": "",
+    "id": "d41d8cd98f00b204e9800998ecf8427e",
+    "groups": [],
+    "checks": [
+        {
+          "path": "::StatusOK",
+          "id": "520fbab0d82ad87c21171c9acc6b61e1",
+          "passes": 500,
+          "fails": 0,
+          "name": "StatusOK"
+        }
+      ]
+  },
+  "options": {
+    "noColor": false,
+    "summaryTrendStats": [
+      "avg",
+      "min",
+      "med",
+      "max",
+      "p(90)",
+      "p(95)",
+      "p(99)"
+    ],
+    "summaryTimeUnit": ""
+  },
+  "state": {
+    "isStdOutTTY": false,
+    "isStdErrTTY": false,
+    "testRunDurationMs": 101.7239
+  },
+  "metrics": {
+    "grpc_req_duration": {
+      "contains": "time",
+      "values": {
+        "max": 3.1915,
+        "p(90)": 1.11264,
+        "p(95)": 1.5118,
+        "p(99)": 2.4792,
+        "avg": 0.530826799999999,
+        "min": 0,
+        "med": 0.5354
+      },
+      "type": "trend"
+    },
+    "response_size_bytes": {
+      "type": "trend",
+      "contains": "default",
+      "values": {
+        "p(95)": 228,
+        "p(99)": 228,
+        "avg": 228,
+        "min": 228,
+        "med": 228,
+        "max": 228,
+        "p(90)": 228
+      }
+    },
+    "errors": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 500
+      }
+    },
+    "checks": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "passes": 500,
+        "fails": 0,
+        "rate": 1
+      }
+    },
+    "data_sent": {
+      "type": "counter",
+      "contains": "data",
+      "values": {
+        "count": 81768,
+        "rate": 803822.8970772846
+      }
+    },
+    "data_received": {
+      "type": "counter",
+      "contains": "data",
+      "values": {
+        "count": 110239,
+        "rate": 1083707.9585033604
+      }
+    },
+    "iteration_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 0.9783972000000016,
+        "min": 0,
+        "med": 0.66475,
+        "max": 17.2663,
+        "p(90)": 1.6157,
+        "p(95)": 2.204714999999996,
+        "p(99)": 5.364744999999896
+      }
+    },
+    "iterations": {
+      "values": {
+        "count": 500,
+        "rate": 4915.265734011377
+      },
+      "type": "counter",
+      "contains": "default"
+    }
+  }
+}

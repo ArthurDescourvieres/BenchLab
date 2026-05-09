@@ -1,9 +1,10 @@
 // Scénario B — écriture : 500 POST, 5 VU
 import http from "k6/http";
 import { check } from "k6";
-import { Trend } from "k6/metrics";
+import { Trend, Rate } from "k6/metrics";
 
 const responseSizeBytes = new Trend("response_size_bytes");
+const errors = new Rate("errors");
 
 const base = __ENV.BASE_URL || "http://localhost:8080";
 
@@ -27,6 +28,8 @@ export default function () {
     headers: { "Content-Type": "application/json" },
   });
   responseSizeBytes.add(res.body.length);
+  const ok = res.status === 201;
+  errors.add(!ok);
   check(res, { "201": (r) => r.status === 201 });
 }
 

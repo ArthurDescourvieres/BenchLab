@@ -1,9 +1,16 @@
-// Scénario C — charge progressive sur GET (10 → 100 VU)
+// Scénario C — charge progressive sur GET (10 → 100 VU).
+//
+// Stages k6 : montée linéaire 10 → 30 → 60 → 100 VU (45s par palier), puis
+// 30s de stabilisation à 100 VU. Total : 4 min. À comparer avec
+// grpc-c-ramp.sh qui utilise des paliers discrets (limite native de ghz) :
+// les bornes (10 et 100) sont identiques, l'approche diffère car les outils
+// le sont. La divergence est documentée dans benchmark/BENCH-CONDITIONS.md.
 import http from "k6/http";
 import { check } from "k6";
-import { Trend } from "k6/metrics";
+import { Trend, Rate } from "k6/metrics";
 
 const responseSizeBytes = new Trend("response_size_bytes");
+const errors = new Rate("errors");
 
 const base = __ENV.BASE_URL || "http://localhost:8080";
 
@@ -41,6 +48,8 @@ export function setup() {
 export default function (data) {
   const res = http.get(`${base}/sensors/${data.id}`);
   responseSizeBytes.add(res.body.length);
+  const ok = res.status === 200;
+  errors.add(!ok);
   check(res, { "200": (r) => r.status === 200 });
 }
 

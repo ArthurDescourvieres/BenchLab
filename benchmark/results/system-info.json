@@ -1,0 +1,15 @@
+{
+  "collected_at": "2026-05-09T16:24:39Z",
+  "hostname": "LAPTOP",
+  "os": "MINGW64_NT-10.0-26200 3.5.4-395fda67.x86_64",
+  "arch": "x86_64",
+  "cpu_model": "Intel(R) Core(TM) Ultra 7 155H",
+  "cpu_logical_cores": "22",
+  "ram_mb": "32120",
+  "tools": {
+    "go": "go version go1.26.2 windows/amd64",
+    "k6": "k6.exe v1.7.1 (commit/9f82e6f1fc, go1.26.1, windows/amd64)",
+    "ghz": "dev",
+    "protoc": "libprotoc 34.1"
+  }
+}

@@ -16,6 +16,8 @@ Ce fichier documente **l’initialisation du projet** sur ta machine.
 
 - **Benchmarks** : [k6](https://k6.io/) pour le REST ; [ghz](https://ghz.sh/) pour le gRPC (lignes de commande documentées ci‑dessous).
 
+> 📋 Conditions de test (machine, versions exactes des outils) : voir [`benchmark/BENCH-CONDITIONS.md`](benchmark/BENCH-CONDITIONS.md). Les valeurs sont régénérables automatiquement via `bash benchmark/scripts/collect-system-info.sh` (ou `.\benchmark\scripts\collect-system-info.ps1` sous PowerShell).
+
 
 ## Installer les dépendances Go
 
@@ -142,7 +144,27 @@ Scénario **C** — montée progressive 10 → 100 VU sur `GET` :
 k6 run benchmark/scripts/k6-rest-c-ramp.js
 ```
 
-Les résumés k6 sont écrits dans `benchmark/results/` (`k6-rest-*-summary.json`). Ils incluent désormais **`p(99)`** sur les tendances de temps et une métrique **`response_size_bytes`** (taille du corps de réponse mesurée pendant le test).
+Les résumés k6 sont écrits dans `benchmark/results/` (`k6-rest-*-summary.json`). Ils incluent **`med` (p50)**, **`p(95)`** et **`p(99)`** sur les tendances de temps, une métrique **`response_size_bytes`** (taille du corps de réponse), et une **`Rate` `errors`** explicite (% de requêtes non‑2xx, complète `http_req_failed` collecté nativement par k6).
+
+#### Variante avec compression gzip (REST + gzip)
+
+La consigne « pour aller plus loin » demande de comparer JSON+gzip à Protobuf. Le service REST embarque un middleware gzip **désactivé par défaut**, à activer via la variable d'environnement `REST_GZIP=1`.
+
+```bash
+# Bash : activer gzip puis lancer la variante k6 dédiée
+REST_GZIP=1 ./bin/rest$(go env GOEXE)
+# Dans un autre terminal :
+k6 run benchmark/scripts/k6-rest-a-read-gzip.js
+```
+
+```powershell
+# PowerShell
+$env:REST_GZIP=1; .\bin\rest.exe
+# Dans un autre terminal :
+k6 run benchmark\scripts\k6-rest-a-read-gzip.js
+```
+
+Le résumé est écrit dans `benchmark/results/k6-rest-a-gzip-summary.json` ; comparer la `response_size_bytes.avg` et la `data_received` à la version sans gzip.
 
 **Taille JSON vs Protobuf** (un même capteur, hors en-têtes réseau) :
 
@@ -182,7 +204,7 @@ cd <chemin-vers-votre-dossier-BenchLab>
 .\benchmark\scripts\grpc-c-ramp.ps1
 ```
 
-Les sorties ghz sont des fichiers JSON dans `benchmark/results/` (`ghz-grpc-*.json`).
+Les sorties ghz sont des fichiers JSON dans `benchmark/results/` (`ghz-grpc-*.json`). Pour le scénario C, ghz ne supporte pas nativement le ramp continu (cf. k6 stages) : on émule la montée en charge par 5 runs indépendants à concurrence fixe (10, 25, 50, 75, 100), un fichier de résultats par palier. Les bornes 10 et 100 restent identiques au scénario k6 REST C, ce qui permet de comparer les extrêmes.
 
 #### Si les scripts gRPC échouent (Windows)
 
@@ -199,3 +221,43 @@ go run ./benchmark/cmd/seedsensor localhost:9090
 ```
 
 La commande affiche uniquement l’identifiant du capteur créé sur le serveur ciblé.
+
+## Orchestration en une commande
+
+Le script `benchmark/scripts/bench-all.sh` enchaîne **tous** les scénarios (REST A/B/C, gRPC A/B/C, variante gzip), démarre chaque service en arrière-plan, attache un monitor CPU/RAM, lance l'outil de mesure, puis nettoie. Un Makefile équivalent est fourni pour les utilisateurs ayant `make`.
+
+```bash
+# Tout en un (sysinfo + payload + 7 scénarios)
+bash benchmark/scripts/bench-all.sh
+
+# Un scénario seul
+bash benchmark/scripts/bench-all.sh rest-a
+bash benchmark/scripts/bench-all.sh grpc-c
+bash benchmark/scripts/bench-all.sh rest-gzip
+
+# Ou via Make (équivalent)
+make bench-all
+make bench-rest-a
+make bench-grpc-c
+make bench-rest-gzip
+```
+
+## Monitoring CPU/RAM pendant un benchmark (éco-conception)
+
+Un petit programme Go (`benchmark/cmd/monitor`) sonde un PID toutes les secondes (CPU%, RAM RSS, threads) et écrit un CSV. Il est lancé automatiquement par `bench-all.sh` / le Makefile pour chaque scénario, mais peut aussi être appelé seul :
+
+```bash
+# 1) Démarrer le service à mesurer dans un terminal :
+go run ./rest-service
+
+# 2) Dans un second terminal, repérer le PID puis :
+go run ./benchmark/cmd/monitor \
+  -pid <PID-du-service> \
+  -duration 90s \
+  -interval 1s \
+  -out benchmark/results/monitor-rest-a.csv
+
+# 3) Dans un troisième terminal, lancer la charge (k6 / ghz).
+```
+
+Sortie CSV : `timestamp_unix_ms,elapsed_s,cpu_percent,mem_rss_mb,num_threads`. À exploiter dans le rapport (section éco-conception).

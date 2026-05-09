@@ -1,0 +1,139 @@
+{
+  "state": {
+    "isStdOutTTY": false,
+    "isStdErrTTY": false,
+    "testRunDurationMs": 696811.6215
+  },
+  "metrics": {
+    "grpc_req_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "max": 669032.5746,
+        "p(90)": 0.6321,
+        "p(95)": 0.9988,
+        "p(99)": 1.5138,
+        "avg": 15.60004455964751,
+        "min": 0,
+        "med": 0.5245
+      }
+    },
+    "data_sent": {
+      "type": "counter",
+      "contains": "data",
+      "values": {
+        "count": 19806324,
+        "rate": 28424.215941409926
+      }
+    },
+    "data_received": {
+      "type": "counter",
+      "contains": "data",
+      "values": {
+        "count": 37857632,
+        "rate": 54329.794211103006
+      }
+    },
+    "errors": {
+      "contains": "default",
+      "values": {
+        "rate": 0.0009918090254621317,
+        "passes": 174,
+        "fails": 175263
+      },
+      "type": "rate"
+    },
+    "iteration_duration": {
+      "values": {
+        "med": 0.5427,
+        "max": 669035.5555,
+        "p(90)": 0.9993,
+        "p(95)": 1.1371,
+        "p(99)": 1.7455380000000005,
+        "avg": 15.765235779675326,
+        "min": 0
+      },
+      "type": "trend",
+      "contains": "time"
+    },
+    "iterations": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 175432,
+        "rate": 251.7638836481432
+      }
+    },
+    "response_size_bytes": {
+      "values": {
+        "med": 223,
+        "max": 223,
+        "p(90)": 223,
+        "p(95)": 223,
+        "p(99)": 223,
+        "avg": 222.89090100719918,
+        "min": 113
+      },
+      "type": "trend",
+      "contains": "default"
+    },
+    "checks": {
+      "values": {
+        "rate": 0.9990309690879139,
+        "passes": 175263,
+        "fails": 170
+      },
+      "type": "rate",
+      "contains": "default"
+    },
+    "vus_max": {
+      "type": "gauge",
+      "contains": "default",
+      "values": {
+        "value": 100,
+        "min": 100,
+        "max": 100
+      }
+    },
+    "vus": {
+      "type": "gauge",
+      "contains": "default",
+      "values": {
+        "value": 34,
+        "min": 1,
+        "max": 34
+      }
+    }
+  },
+  "setup_data": {
+    "id": "6e4707d491c1a01ecacedb80be509d08"
+  },
+  "root_group": {
+    "checks": [
+      {
+        "fails": 170,
+        "name": "StatusOK",
+        "path": "::StatusOK",
+        "id": "520fbab0d82ad87c21171c9acc6b61e1",
+        "passes": 175263
+      }
+    ],
+    "name": "",
+    "path": "",
+    "id": "d41d8cd98f00b204e9800998ecf8427e",
+    "groups": []
+  },
+  "options": {
+    "summaryTrendStats": [
+      "avg",
+      "min",
+      "med",
+      "max",
+      "p(90)",
+      "p(95)",
+      "p(99)"
+    ],
+    "summaryTimeUnit": "",
+    "noColor": false
+  }
+}

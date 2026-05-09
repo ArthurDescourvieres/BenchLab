@@ -9,6 +9,6 @@ ghz --insecure \
   --proto="$ROOT/grpc-service/proto/sensor.proto" \
   --call=benchlab.sensor.v1.SensorService/GetSensor \
   -d "{\"id\":\"${ID}\"}" \
-  -n 1000 -c 10 \
+  -n 1000 -c 10 --connections=10 \
   --format=json -o "$ROOT/benchmark/results/ghz-grpc-a.json" \
   "$ADDR"

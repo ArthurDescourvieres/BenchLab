@@ -1,4 +1,10 @@
-# Scénario C gRPC — plusieurs paliers de concurrence
+# Scénario C — montée en charge gRPC (ghz).
+#
+# ghz ne supporte pas nativement un ramp continu (cf. k6-grpc-c-ramp.js qui
+# utilise des "stages"). On émule la montée par une série de runs indépendants
+# à concurrence fixe : 10, 25, 50, 75, 100 connexions. Chaque run tape 5000
+# requêtes à concurrence constante. Les bornes (10 et 100) couvrent le même
+# domaine que la consigne.
 $ErrorActionPreference = "Stop"
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 Set-Location $Root
