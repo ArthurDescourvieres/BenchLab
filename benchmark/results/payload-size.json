@@ -1,0 +1,7 @@
+{
+  "description": "Taille du corps d'un Sensor (même contenu sémantique) : JSON HTTP vs message Protobuf seul (sans en-têtes HTTP/2 ni gRPC).",
+  "json_sensor_bytes": 230,
+  "protobuf_sensor_bytes": 135,
+  "ratio_json_over_proto": 1.7037037037037037,
+  "note": "Pour le trafic réel gRPC, ajouter l'en-tête de frame (5 octets) + longueur du message par appel unary."
+}

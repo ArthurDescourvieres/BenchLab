@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package benchlab.sensor.v1;
+
+option go_package = "github.com/ArthurDescourvieres/BenchLab/grpc-service/gen/benchlab/sensor/v1;sensorv1";
+
+message Sensor {
+  string id = 1;
+  string name = 2;
+  string type = 3;
+  string location = 4;
+  string unit = 5;
+  string status = 6;
+  double last_value = 7;
+  string last_reading_at = 8;
+  string created_at = 9;
+}
+
+message SensorId {
+  string id = 1;
+}
+
+message CreateSensorRequest {
+  Sensor sensor = 1;
+}
+
+message ListSensorsRequest {}
+
+message ListSensorsResponse {
+  repeated Sensor sensors = 1;
+}
+
+message UpdateSensorRequest {
+  string id = 1;
+  Sensor sensor = 2;
+}
+
+message DeleteSensorResponse {}
+
+service SensorService {
+  rpc CreateSensor(CreateSensorRequest) returns (Sensor);
+  rpc GetSensor(SensorId) returns (Sensor);
+  rpc ListSensors(ListSensorsRequest) returns (ListSensorsResponse);
+  rpc UpdateSensor(UpdateSensorRequest) returns (Sensor);
+  rpc DeleteSensor(SensorId) returns (DeleteSensorResponse);
+}

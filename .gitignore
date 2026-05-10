@@ -7,3 +7,11 @@
 */bin/
 *.exe
 *.test
+
+# Les résultats JSON/CSV/TXT sont des livrables (consigne) → conservés.
+# On ignore uniquement les logs de service et les fichiers de PID éphémères.
+benchmark/results/*.log
+benchmark/results/*.pid
+
+# Windows accidental NUL device file created in repo root
+/nul

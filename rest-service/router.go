@@ -1,8 +1,11 @@
 package main
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/ArthurDescourvieres/BenchLab/internal/sensorsvc"
+	"github.com/gin-gonic/gin"
+)
 
-func RegisterRoutes(r *gin.Engine, svc *SensorService) {
+func RegisterRoutes(r *gin.Engine, svc *sensorsvc.SensorService) {
 	h := NewHandler(svc)
 	g := r.Group("/sensors")
 	{
