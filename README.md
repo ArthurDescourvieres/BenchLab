@@ -240,6 +240,7 @@ make bench-all
 make bench-rest-a
 make bench-grpc-c
 make bench-rest-gzip
+make run-dashboard
 ```
 
 ## Monitoring CPU/RAM pendant un benchmark (éco-conception)

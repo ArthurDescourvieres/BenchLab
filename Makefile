@@ -25,6 +25,7 @@ BIN_REST := bin/rest$(EXE)
 BIN_GRPC := bin/grpc$(EXE)
 BIN_MONITOR := bin/monitor$(EXE)
 BIN_DASHBOARD := bin/dashboard$(EXE)
+BIN_GHZSUMMARY := bin/ghzsummary$(EXE)
 
 REST_PORT ?= 8080
 GRPC_PORT ?= 9090
@@ -42,7 +43,7 @@ RESULTS := benchmark/results
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?$$' $(MAKEFILE_LIST) | grep -v '^\.' | sort
 
-build: $(BIN_REST) $(BIN_GRPC) $(BIN_MONITOR)
+build: $(BIN_REST) $(BIN_GRPC) $(BIN_MONITOR) $(BIN_GHZSUMMARY)
 
 $(BIN_REST):
 	@mkdir -p bin
@@ -55,6 +56,10 @@ $(BIN_GRPC):
 $(BIN_MONITOR):
 	@mkdir -p bin
 	go build -o "$(BIN_MONITOR)" ./benchmark/cmd/monitor
+
+$(BIN_GHZSUMMARY):
+	@mkdir -p bin
+	go build -o "$(BIN_GHZSUMMARY)" ./benchmark/cmd/ghzsummary
 
 sysinfo:
 	bash benchmark/scripts/collect-system-info.sh
@@ -84,32 +89,36 @@ _bench-rest:
 	@if [ "$${GZIP:-0}" = "1" ]; then export REST_GZIP=1; echo "[bench] REST_GZIP=1 (gzip activé)"; fi
 	export PORT=$(REST_PORT); \
 	"$(BIN_REST)" > $(RESULTS)/rest-service.log 2> $(RESULTS)/rest-service-err.log & \
-	REST_PID=$$!; \
-	trap 'kill $$REST_PID 2>/dev/null || true; kill $$MON_PID 2>/dev/null || true' EXIT INT TERM; \
-	echo "[bench] REST démarré (PID=$$REST_PID), attente 1s..."; \
+	BASH_PID=$$!; \
+	trap 'kill $$BASH_PID 2>/dev/null || true; kill $$MON_PID 2>/dev/null || true' EXIT INT TERM; \
+	echo "[bench] REST démarré, attente 1s..."; \
 	sleep 1; \
 	for i in 1 2 3 4 5 6 7 8 9 10; do \
 	  if curl -fsS -o /dev/null "$(REST_BASE)/health"; then break; fi; \
 	  sleep 0.5; \
 	done; \
+	WIN_PID=$$(cat /proc/$$BASH_PID/winpid 2>/dev/null | tr -d '\r\n'); \
+	if [ -z "$$WIN_PID" ]; then WIN_PID=$$(netstat -ano 2>/dev/null | grep " $(REST_PORT) " | grep "LISTENING" | awk '{print $$NF}' | head -1 | tr -d '\r'); fi; \
+	REST_PID=$${WIN_PID:-$$BASH_PID}; \
+	echo "[bench] REST PID monitor: $$REST_PID"; \
 	"$(BIN_MONITOR)" -pid $$REST_PID -duration $(DUR) -interval 1s -out "$(RESULTS)/$(MONFILE)" & \
 	MON_PID=$$!; \
 	echo "[bench] monitor démarré (PID=$$MON_PID) → $(RESULTS)/$(MONFILE)"; \
 	BASE_URL=$(REST_BASE) k6 run "$(SCRIPT)"; \
 	BENCH_RC=$$?; \
-	kill $$REST_PID 2>/dev/null || true; \
+	kill $$BASH_PID 2>/dev/null || true; \
 	wait $$MON_PID 2>/dev/null || true; \
 	exit $$BENCH_RC
 
 # --- gRPC ---------------------------------------------------------------------
 
-bench-grpc-a: $(BIN_GRPC) $(BIN_MONITOR)
+bench-grpc-a: $(BIN_GRPC) $(BIN_MONITOR) $(BIN_GHZSUMMARY)
 	@$(MAKE) _bench-grpc TOOL=ghz MONFILE=monitor-grpc-a.csv DUR=180s GHZ_SCRIPT=benchmark/scripts/grpc-a-read.sh
 
-bench-grpc-b: $(BIN_GRPC) $(BIN_MONITOR)
+bench-grpc-b: $(BIN_GRPC) $(BIN_MONITOR) $(BIN_GHZSUMMARY)
 	@$(MAKE) _bench-grpc TOOL=ghz MONFILE=monitor-grpc-b.csv DUR=120s GHZ_SCRIPT=benchmark/scripts/grpc-b-write.sh
 
-bench-grpc-c: $(BIN_GRPC) $(BIN_MONITOR)
+bench-grpc-c: $(BIN_GRPC) $(BIN_MONITOR) $(BIN_GHZSUMMARY)
 	@$(MAKE) _bench-grpc TOOL=ghz MONFILE=monitor-grpc-c.csv DUR=600s GHZ_SCRIPT=benchmark/scripts/grpc-c-ramp.sh
 
 # Cible interne : démarre le service gRPC en background, attache le monitor,
@@ -118,22 +127,26 @@ _bench-grpc:
 	@mkdir -p $(RESULTS)
 	export GRPC_PORT=$(GRPC_PORT); \
 	"$(BIN_GRPC)" > $(RESULTS)/grpc-service.log 2> $(RESULTS)/grpc-service-err.log & \
-	GRPC_PID=$$!; \
-	trap 'kill $$GRPC_PID 2>/dev/null || true; kill $$MON_PID 2>/dev/null || true' EXIT INT TERM; \
-	echo "[bench] gRPC démarré (PID=$$GRPC_PID), attente 1.5s..."; \
+	BASH_PID=$$!; \
+	trap 'kill $$BASH_PID 2>/dev/null || true; kill $$MON_PID 2>/dev/null || true' EXIT INT TERM; \
+	echo "[bench] gRPC démarré, attente 1.5s..."; \
 	sleep 1.5; \
-	if ! kill -0 $$GRPC_PID 2>/dev/null; then \
-	  echo "[bench] ERREUR : le service gRPC (PID=$$GRPC_PID) a quitté prématurément."; \
+	if ! kill -0 $$BASH_PID 2>/dev/null; then \
+	  echo "[bench] ERREUR : le service gRPC a quitté prématurément."; \
 	  echo "[bench] Port $(GRPC_PORT) déjà utilisé ? Logs :"; \
 	  cat $(RESULTS)/grpc-service-err.log 2>/dev/null || true; \
 	  exit 1; \
 	fi; \
+	WIN_PID=$$(cat /proc/$$BASH_PID/winpid 2>/dev/null | tr -d '\r\n'); \
+	if [ -z "$$WIN_PID" ]; then WIN_PID=$$(netstat -ano 2>/dev/null | grep " $(GRPC_PORT) " | grep "LISTENING" | awk '{print $$NF}' | head -1 | tr -d '\r'); fi; \
+	GRPC_PID=$${WIN_PID:-$$BASH_PID}; \
+	echo "[bench] gRPC PID monitor: $$GRPC_PID"; \
 	"$(BIN_MONITOR)" -pid $$GRPC_PID -duration $(DUR) -interval 1s -out "$(RESULTS)/$(MONFILE)" & \
 	MON_PID=$$!; \
 	echo "[bench] monitor démarré (PID=$$MON_PID) → $(RESULTS)/$(MONFILE)"; \
 	GRPC_ADDR=$(GRPC_ADDR) bash "$(GHZ_SCRIPT)"; \
 	BENCH_RC=$$?; \
-	kill $$GRPC_PID 2>/dev/null || true; \
+	kill $$BASH_PID 2>/dev/null || true; \
 	wait $$MON_PID 2>/dev/null || true; \
 	exit $$BENCH_RC
 

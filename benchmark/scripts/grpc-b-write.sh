@@ -11,4 +11,4 @@ ghz --insecure \
   -d "$DATA" \
   -n 500 -c 5 --connections=5 \
   --format=json \
-  "$ADDR" | tee "$ROOT/benchmark/results/ghz-grpc-b.json"
+  "$ADDR" | tee "$ROOT/benchmark/results/ghz-grpc-b.json" | "$ROOT/bin/ghzsummary$(go env GOEXE)"

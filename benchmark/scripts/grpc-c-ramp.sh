@@ -22,5 +22,5 @@ for c in 10 25 50 75 100; do
     -d "{\"id\":\"${ID}\"}" \
     -n 5000 -c "$c" --connections="$c" \
     --format=json \
-    "$ADDR" | tee "$ROOT/benchmark/results/ghz-grpc-c-${c}.json"
+    "$ADDR" | tee "$ROOT/benchmark/results/ghz-grpc-c-${c}.json" | "$ROOT/bin/ghzsummary$(go env GOEXE)"
 done
