@@ -122,6 +122,12 @@ _bench-grpc:
 	trap 'kill $$GRPC_PID 2>/dev/null || true; kill $$MON_PID 2>/dev/null || true' EXIT INT TERM; \
 	echo "[bench] gRPC démarré (PID=$$GRPC_PID), attente 1.5s..."; \
 	sleep 1.5; \
+	if ! kill -0 $$GRPC_PID 2>/dev/null; then \
+	  echo "[bench] ERREUR : le service gRPC (PID=$$GRPC_PID) a quitté prématurément."; \
+	  echo "[bench] Port $(GRPC_PORT) déjà utilisé ? Logs :"; \
+	  cat $(RESULTS)/grpc-service-err.log 2>/dev/null || true; \
+	  exit 1; \
+	fi; \
 	"$(BIN_MONITOR)" -pid $$GRPC_PID -duration $(DUR) -interval 1s -out "$(RESULTS)/$(MONFILE)" & \
 	MON_PID=$$!; \
 	echo "[bench] monitor démarré (PID=$$MON_PID) → $(RESULTS)/$(MONFILE)"; \

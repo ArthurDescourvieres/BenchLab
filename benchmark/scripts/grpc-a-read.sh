@@ -10,5 +10,5 @@ ghz --insecure \
   --call=benchlab.sensor.v1.SensorService/GetSensor \
   -d "{\"id\":\"${ID}\"}" \
   -n 1000 -c 10 --connections=10 \
-  --format=json -o "$ROOT/benchmark/results/ghz-grpc-a.json" \
-  "$ADDR"
+  --format=json \
+  "$ADDR" | tee "$ROOT/benchmark/results/ghz-grpc-a.json"
