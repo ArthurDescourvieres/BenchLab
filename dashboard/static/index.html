@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BenchLab Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<header>
+  <div class="header-content">
+    <h1>BenchLab Dashboard</h1>
+    <div id="sysinfo" class="sysinfo-badges">
+      <span class="badge">Chargement…</span>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- Run controls -->
+  <section class="card">
+    <h2>Lancer un benchmark</h2>
+    <div class="bench-grid">
+      <div class="bench-group">
+        <h3>REST — k6</h3>
+        <button class="btn btn-rest" data-target="bench-rest-a">Scénario A — Lecture</button>
+        <button class="btn btn-rest" data-target="bench-rest-b">Scénario B — Écriture</button>
+        <button class="btn btn-rest" data-target="bench-rest-c">Scénario C — Montée en charge</button>
+        <button class="btn btn-rest" data-target="bench-rest-gzip">Scénario A — Gzip</button>
+      </div>
+      <div class="bench-group">
+        <h3>gRPC — ghz</h3>
+        <button class="btn btn-grpc" data-target="bench-grpc-a">Scénario A — Lecture</button>
+        <button class="btn btn-grpc" data-target="bench-grpc-b">Scénario B — Écriture</button>
+        <button class="btn btn-grpc" data-target="bench-grpc-c">Scénario C — Montée en charge</button>
+      </div>
+    </div>
+    <div id="run-status" class="run-status hidden">
+      <div class="spinner"></div>
+      <span id="run-label">Benchmark en cours…</span>
+    </div>
+    <pre id="run-output" class="run-output hidden"></pre>
+  </section>
+
+  <!-- Comparison chart -->
+  <section class="card">
+    <h2>Comparaison REST vs gRPC</h2>
+    <div class="chart-tabs">
+      <button class="tab active" data-metric="p95">P95 latence</button>
+      <button class="tab" data-metric="p99">P99 latence</button>
+      <button class="tab" data-metric="avg">Latence moy.</button>
+      <button class="tab" data-metric="rps">Débit (req/s)</button>
+    </div>
+    <div class="chart-container">
+      <canvas id="comparison-chart"></canvas>
+    </div>
+  </section>
+
+  <!-- Details + Payload -->
+  <div class="two-col">
+
+    <section class="card">
+      <h2>Détails par scénario</h2>
+      <div class="scenario-select">
+        <select id="scenario-select">
+          <option value="a">Scénario A — Lecture</option>
+          <option value="b">Scénario B — Écriture</option>
+          <option value="c">Scénario C — Montée en charge</option>
+        </select>
+      </div>
+      <table id="details-table" class="metrics-table">
+        <thead>
+          <tr>
+            <th>Métrique</th>
+            <th>REST</th>
+            <th>gRPC</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="3" style="color:var(--muted);font-size:.8rem;padding:.5rem">Chargement…</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>Taille du payload</h2>
+      <div id="payload-card" class="payload-content">
+        <div style="color:var(--muted);font-size:.8rem">Chargement…</div>
+      </div>
+    </section>
+
+  </div>
+
+</main>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
