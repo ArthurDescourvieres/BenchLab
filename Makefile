@@ -24,6 +24,7 @@ EXE := $(shell go env GOEXE)
 BIN_REST := bin/rest$(EXE)
 BIN_GRPC := bin/grpc$(EXE)
 BIN_MONITOR := bin/monitor$(EXE)
+BIN_DASHBOARD := bin/dashboard$(EXE)
 
 REST_PORT ?= 8080
 GRPC_PORT ?= 9090
@@ -35,7 +36,8 @@ RESULTS := benchmark/results
 .PHONY: help build sysinfo payload \
         bench-rest-a bench-rest-b bench-rest-c bench-rest-gzip \
         bench-grpc-a bench-grpc-b bench-grpc-c \
-        bench-all clean
+        bench-all clean \
+        build-dashboard run-dashboard
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?$$' $(MAKEFILE_LIST) | grep -v '^\.' | sort
@@ -138,6 +140,13 @@ bench-all: build sysinfo payload \
 	@echo "[bench] tous les scénarios terminés. Résultats dans $(RESULTS)/"
 
 # --- Nettoyage ---------------------------------------------------------------
+
+build-dashboard:
+	@mkdir -p bin
+	go build -o "$(BIN_DASHBOARD)" ./dashboard
+
+run-dashboard: build-dashboard
+	./$(BIN_DASHBOARD)
 
 clean:
 	rm -rf bin
