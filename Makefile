@@ -26,6 +26,7 @@ BIN_GRPC := bin/grpc$(EXE)
 BIN_MONITOR := bin/monitor$(EXE)
 BIN_DASHBOARD := bin/dashboard$(EXE)
 BIN_GHZSUMMARY := bin/ghzsummary$(EXE)
+BIN_K6SUMMARY := bin/k6summary$(EXE)
 
 REST_PORT ?= 8080
 GRPC_PORT ?= 9090
@@ -43,7 +44,7 @@ RESULTS := benchmark/results
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?$$' $(MAKEFILE_LIST) | grep -v '^\.' | sort
 
-build: $(BIN_REST) $(BIN_GRPC) $(BIN_MONITOR) $(BIN_GHZSUMMARY)
+build: $(BIN_REST) $(BIN_GRPC) $(BIN_MONITOR) $(BIN_GHZSUMMARY) $(BIN_K6SUMMARY)
 
 $(BIN_REST):
 	@mkdir -p bin
@@ -61,6 +62,10 @@ $(BIN_GHZSUMMARY):
 	@mkdir -p bin
 	go build -o "$(BIN_GHZSUMMARY)" ./benchmark/cmd/ghzsummary
 
+$(BIN_K6SUMMARY):
+	@mkdir -p bin
+	go build -o "$(BIN_K6SUMMARY)" ./benchmark/cmd/k6summary
+
 sysinfo:
 	bash benchmark/scripts/collect-system-info.sh
 
@@ -70,17 +75,17 @@ payload:
 
 # --- REST ---------------------------------------------------------------------
 
-bench-rest-a: $(BIN_REST) $(BIN_MONITOR)
-	@$(MAKE) _bench-rest SCRIPT=benchmark/scripts/k6-rest-a-read.js MONFILE=monitor-rest-a.csv DUR=180s
+bench-rest-a: $(BIN_REST) $(BIN_MONITOR) $(BIN_K6SUMMARY)
+	@$(MAKE) _bench-rest SCRIPT=benchmark/scripts/k6-rest-a-read.js MONFILE=monitor-rest-a.csv DUR=180s K6SUMFILE=k6-rest-a-summary.json
 
-bench-rest-b: $(BIN_REST) $(BIN_MONITOR)
-	@$(MAKE) _bench-rest SCRIPT=benchmark/scripts/k6-rest-b-write.js MONFILE=monitor-rest-b.csv DUR=120s
+bench-rest-b: $(BIN_REST) $(BIN_MONITOR) $(BIN_K6SUMMARY)
+	@$(MAKE) _bench-rest SCRIPT=benchmark/scripts/k6-rest-b-write.js MONFILE=monitor-rest-b.csv DUR=120s K6SUMFILE=k6-rest-b-summary.json
 
-bench-rest-c: $(BIN_REST) $(BIN_MONITOR)
-	@$(MAKE) _bench-rest SCRIPT=benchmark/scripts/k6-rest-c-ramp.js MONFILE=monitor-rest-c.csv DUR=300s
+bench-rest-c: $(BIN_REST) $(BIN_MONITOR) $(BIN_K6SUMMARY)
+	@$(MAKE) _bench-rest SCRIPT=benchmark/scripts/k6-rest-c-ramp.js MONFILE=monitor-rest-c.csv DUR=300s K6SUMFILE=k6-rest-c-summary.json
 
-bench-rest-gzip: $(BIN_REST) $(BIN_MONITOR)
-	@$(MAKE) _bench-rest SCRIPT=benchmark/scripts/k6-rest-a-read-gzip.js MONFILE=monitor-rest-a-gzip.csv DUR=180s GZIP=1
+bench-rest-gzip: $(BIN_REST) $(BIN_MONITOR) $(BIN_K6SUMMARY)
+	@$(MAKE) _bench-rest SCRIPT=benchmark/scripts/k6-rest-a-read-gzip.js MONFILE=monitor-rest-a-gzip.csv DUR=180s GZIP=1 K6SUMFILE=k6-rest-a-gzip-summary.json
 
 # Cible interne : démarre le service REST en background, attache le monitor,
 # lance k6, puis nettoie. Variables : SCRIPT, MONFILE, DUR, GZIP (optionnel).
@@ -106,6 +111,7 @@ _bench-rest:
 	echo "[bench] monitor démarré (PID=$$MON_PID) → $(RESULTS)/$(MONFILE)"; \
 	BASE_URL=$(REST_BASE) k6 run "$(SCRIPT)"; \
 	BENCH_RC=$$?; \
+	"$(BIN_K6SUMMARY)" "$(RESULTS)/$(K6SUMFILE)"; \
 	kill $$BASH_PID 2>/dev/null || true; \
 	wait $$MON_PID 2>/dev/null || true; \
 	exit $$BENCH_RC
